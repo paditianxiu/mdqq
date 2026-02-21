@@ -388,7 +388,9 @@ object MainHook : YukiBaseHooker() {
                                 val tab2 = parent.findViewById<LinearLayout>(R.id.tab2)
                                 val tab3 = parent.findViewById<LinearLayout>(R.id.tab3)
                                 val tab4 = parent.findViewById<LinearLayout>(R.id.tab4)
+                                // 若未启用频道选项 则不显示此Tab
                                 if (!GuildApi.isShowGuildTab()) tab3.visibility = View.GONE
+
                                 val tabs = listOf(tab1, tab2, tab3, tab4)
                                 val text1 = tab1.findViewById<TextView>(R.id.tab1_text)
                                 val text2 = tab2.findViewById<TextView>(R.id.tab2_text)
@@ -466,7 +468,7 @@ object MainHook : YukiBaseHooker() {
                                     tabLayout.asResolver().firstMethod {
                                         name = "setCurrentTab"
                                     }.invoke(
-                                        2
+                                        if (GuildApi.isShowGuildTab()) 2 else 1
                                     )
 
                                 }
@@ -511,7 +513,7 @@ object MainHook : YukiBaseHooker() {
                                     tabLayout.asResolver().firstMethod {
                                         name = "setCurrentTab"
                                     }.invoke(
-                                        3
+                                        if (GuildApi.isShowGuildTab()) 3 else 2
                                     )
                                 }
 
