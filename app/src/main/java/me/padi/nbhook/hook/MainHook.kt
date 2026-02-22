@@ -3,6 +3,7 @@ package me.padi.nbhook.hook
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
+import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
@@ -27,9 +28,11 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.applyModuleTheme
+import com.tencent.mobileqq.app.QQAppInterface
 import de.robv.android.xposed.XposedBridge
 import me.padi.nbhook.R
 import me.padi.nbhook.api.GuildApi
+import me.padi.nbhook.api.QQEnvApi
 import me.padi.nbhook.library.FloatingActionButton.FloatingActionButton
 import me.padi.nbhook.library.FloatingActionButton.FloatingActionMenu
 import me.padi.nbhook.util.HybridClassLoader
@@ -174,7 +177,7 @@ object MainHook : YukiBaseHooker() {
                 }.hook {
                     after {
                         sQQAppInterface = instance
-
+                        QQEnvApi.sQApi = instance as QQAppInterface
                     }
                 }
 
@@ -245,7 +248,23 @@ object MainHook : YukiBaseHooker() {
                                     scaleType = ImageView.ScaleType.CENTER_INSIDE
 
                                     setOnClickListener {
-                                        Toast.makeText(context, "设置", Toast.LENGTH_SHORT).show()
+                                        val intent = Intent().apply {
+                                            component = ComponentName(
+                                                "com.tencent.mobileqq",
+                                                "com.tencent.mobileqq.activity.QPublicFragmentActivity"
+                                            )
+                                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                            putExtra("fling_action_key", 2)
+                                            putExtra("preAct", "SplashActivity")
+                                            putExtra("leftViewText", "返回")
+                                            putExtra("preAct_elapsedRealtime", SystemClock.elapsedRealtime())
+                                            putExtra("preAct_time", System.currentTimeMillis())
+                                            putExtra(
+                                                "public_fragment_class",
+                                                "com.tencent.mobileqq.setting.main.MainSettingFragment"
+                                            )
+                                        }
+                                        context.startActivity(intent)
                                     }
 
                                     setColorFilter(Color.WHITE)
