@@ -185,7 +185,7 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <me.padi.nbhook.ui.view.MaterialSwitch
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/hide_icon_in_launcher_switch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

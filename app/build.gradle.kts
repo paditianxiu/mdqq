@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.ksp)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -36,6 +37,7 @@ android {
     buildFeatures {
         buildConfig = true
         viewBinding = true
+        compose = true
     }
     lint { checkReleaseBuilds = false }
 
@@ -58,6 +60,7 @@ tasks.withType<KotlinJvmCompile>().configureEach {
 }
 
 dependencies {
+    implementation(libs.androidx.ui)
     compileOnly(libs.rovo89.xposed.api)
     ksp(libs.yukihookapi.ksp.xposed)
     implementation(libs.yukihookapi)
@@ -95,7 +98,22 @@ dependencies {
 
     implementation(libs.xphelper)
 
+    implementation("com.github.bumptech.glide:glide:5.0.5")
+
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    val composeBom = platform("androidx.compose:compose-bom:2025.12.00")
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.compose.material3.adaptive:adaptive")
+    implementation("androidx.activity:activity-compose:1.11.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.5")
+
 }
 
 val adb: String = androidComponents.sdkComponents.adb.get().asFile.absolutePath
