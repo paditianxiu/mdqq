@@ -39,3 +39,10 @@
 }
 
 -dontwarn java.lang.reflect.AnnotatedType
+
+-keep,allowobfuscation class * extends android.view.View {
+    <init>(...);
+}
+
+
+-keep class com.highcapable.hikage.**
