@@ -2,7 +2,6 @@ package me.padi.nbhook.hook
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
@@ -10,17 +9,10 @@ import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.Outline
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.SystemClock
-import android.transition.ChangeBounds
-import android.transition.Fade
-import android.transition.Transition
-import android.transition.TransitionManager
-import android.transition.TransitionSet
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -30,911 +22,317 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
-import androidx.interpolator.view.animation.FastOutSlowInInterpolator
-import com.bumptech.glide.Glide
-import com.highcapable.betterandroid.ui.extension.view.setMargins
-import com.highcapable.betterandroid.ui.extension.view.textColor
-import com.highcapable.hikage.core.base.Hikageable
-import com.highcapable.hikage.widget.android.widget.ImageView
-import com.highcapable.hikage.widget.android.widget.LinearLayout
-import com.highcapable.hikage.widget.android.widget.TextView
-import com.highcapable.hikage.widget.androidx.cardview.widget.CardView
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.applyModuleTheme
-import com.tencent.mobileqq.app.QQAppInterface
-import de.robv.android.xposed.XposedBridge
 import me.padi.nbhook.R
-import me.padi.nbhook.api.GuildApi
-import me.padi.nbhook.api.QQEnvApi
+import me.padi.nbhook.hook.base.Plugin
 import me.padi.nbhook.library.FloatingActionButton.FloatingActionButton
 import me.padi.nbhook.library.FloatingActionButton.FloatingActionMenu
-import me.padi.nbhook.util.HybridClassLoader
-import top.sacz.xphelper.XpHelper
 import top.sacz.xphelper.dexkit.DexFinder
-import java.lang.reflect.Field
 import kotlin.math.roundToInt
-
-object MainHook : YukiBaseHooker() {
-    private var sQQAppInterface: Any? = null
+@Deprecated(message = "弃用，暂时仍然生效，后续将剩下的Hook细分开")
+object MainHook : Plugin(isEnabledDefault = true) {
 
     @SuppressLint("RestrictedApi", "InflateParams", "ResourceType")
     override fun onHook() {
-        Application::class.java.resolve().firstMethod {
-            name = "attach"
-            parameterCount = 1
-        }.hook {
-            after {
-                val appContext = instance<Context>()
-                XpHelper.initContext(appContext)
-                val loader = appContext.classLoader
-                HybridClassLoader.hostClassLoader = loader
-                injectClassLoader()
 
+        DexFinder.findMethod {
+            declaredClass =
+                "com.tencent.mobileqq.parts.QQSettingMeCoverPartV3".toClass(loader)
+            parameters = arrayOf(Boolean::class.java)
+            usingNumbers = longArrayOf(0, 8)
+        }.firstOrNull().hook().intercept()
 
-                "com.tencent.mobileqq.activity.recent.DrawerFrame".toClass(loader).resolve()
-                    .firstConstructor {
-                        parameterCount = 6
-                    }.hook {
-                        after {
-                            val leftDrawer = args(2).cast<ViewGroup>()
-                            val fixContext =
-                                leftDrawer?.context?.applyModuleTheme(R.style.Theme_AppDefault)
-                                    ?: return@after
-                            leftDrawer.apply {
-                                addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
-                                    override fun onLayoutChange(
-                                        v: View?,
-                                        left: Int,
-                                        top: Int,
-                                        right: Int,
-                                        bottom: Int,
-                                        oldLeft: Int,
-                                        oldTop: Int,
-                                        oldRight: Int,
-                                        oldBottom: Int
-                                    ) {
-                                        v?.removeOnLayoutChangeListener(this)
-                                        val group =
-                                            (v as? ViewGroup)?.getChildAt(0) as? ViewGroup ?: return
-                                        group.removeAllViews()
-                                        val hikage = Hikageable {
-                                            LinearLayout(
-                                                lparams = LayoutParams(matchParent = true), init = {
-                                                    orientation = LinearLayout.VERTICAL
-                                                    background = ContextCompat.getDrawable(
-                                                        context, R.drawable.bg
-                                                    )
 
-                                                }) {
 
-                                                LinearLayout(
-                                                    lparams = LayoutParams(
-                                                    widthMatchParent = true
-                                                ) {
-                                                    topMargin = 80.dp
-                                                }, init = {
-                                                    orientation = LinearLayout.VERTICAL
-                                                    gravity = Gravity.CENTER_HORIZONTAL
-                                                }) {
-                                                    CardView(init = {
-                                                        radius = 999.toFloat()
-                                                        setOnClickListener {
-
-                                                        }
-                                                    }) {
-                                                        ImageView(
-                                                            id = "headImage",
-                                                            lparams = LayoutParams {
-                                                                width = 120.dp
-                                                                height = 120.dp
-                                                            }) {}
-                                                    }
-                                                    TextView(
-                                                        lparams = LayoutParams {
-                                                            topMargin = 10.dp
-                                                        }) {
-                                                        text = getCurrentNickname()
-                                                        textSize = 20.toFloat()
-                                                        textColor = Color.WHITE
-                                                        typeface =
-                                                            Typeface.defaultFromStyle(Typeface.BOLD)
-
-                                                    }
-                                                }
-
-                                                LinearLayout(
-                                                    lparams = LayoutParams(
-                                                    widthMatchParent = true
-                                                ) {
-                                                    topMargin = 10.dp
-                                                }, init = {
-                                                    orientation = LinearLayout.HORIZONTAL
-                                                }) {
-                                                    CardView(lparams = LayoutParams {
-                                                        weight = 1f
-                                                    }, init = {
-                                                        setCardBackgroundColor(0xB4FFFFFF.toInt())
-                                                        radius = 20.toFloat()
-                                                        setMargins(8.dp)
-
-                                                        setOnClickListener {
-
-                                                        }
-                                                    }) {
-                                                        LinearLayout(
-                                                            lparams = LayoutParams(
-                                                                matchParent = true,
-                                                            ), init = {
-                                                                setPadding(
-                                                                    16.dp, 16.dp, 16.dp, 16.dp
-                                                                )
-                                                                gravity = Gravity.CENTER_VERTICAL
-                                                                orientation = LinearLayout.VERTICAL
-                                                            }) {
-
-                                                            ImageView {
-                                                                setImageResource(R.drawable.account_balance_wallet_24)
-
-                                                            }
-
-                                                            TextView {
-                                                                text = "钱包"
-                                                                textColor = Color.BLACK
-                                                                textSize = 16.toFloat()
-                                                                typeface =
-                                                                    Typeface.defaultFromStyle(
-                                                                        Typeface.BOLD
-                                                                    )
-                                                            }
-
-                                                        }
-
-                                                    }
-                                                    CardView(lparams = LayoutParams {
-                                                        weight = 1f
-                                                    }, init = {
-                                                        setCardBackgroundColor(0xB4FFFFFF.toInt())
-                                                        radius = 20.toFloat()
-                                                        setMargins(8.dp)
-
-                                                        setOnClickListener {
-
-                                                        }
-                                                    }) {
-                                                        LinearLayout(
-                                                            lparams = LayoutParams(
-                                                                matchParent = true,
-                                                            ), init = {
-                                                                setPadding(
-                                                                    16.dp, 16.dp, 16.dp, 16.dp
-                                                                )
-                                                                gravity = Gravity.CENTER_VERTICAL
-                                                                orientation = LinearLayout.VERTICAL
-                                                            }) {
-
-                                                            ImageView {
-                                                                setImageResource(R.drawable.book_4_24)
-
-                                                            }
-
-                                                            TextView {
-                                                                text = "收藏"
-                                                                textColor = Color.BLACK
-                                                                textSize = 16.toFloat()
-                                                                typeface =
-                                                                    Typeface.defaultFromStyle(
-                                                                        Typeface.BOLD
-                                                                    )
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    CardView(lparams = LayoutParams {
-                                                        weight = 1f
-                                                    }, init = {
-                                                        setCardBackgroundColor(0xB4FFFFFF.toInt())
-                                                        radius = 20.toFloat()
-                                                        setMargins(8.dp)
-
-                                                        setOnClickListener {
-
-                                                        }
-                                                    }) {
-                                                        LinearLayout(
-                                                            lparams = LayoutParams(
-                                                                matchParent = true,
-                                                            ), init = {
-                                                                setPadding(
-                                                                    16.dp, 16.dp, 16.dp, 16.dp
-                                                                )
-                                                                gravity = Gravity.CENTER_VERTICAL
-                                                                orientation = LinearLayout.VERTICAL
-                                                            }) {
-
-                                                            ImageView {
-                                                                setImageResource(R.drawable.folder_24)
-
-                                                            }
-
-                                                            TextView {
-                                                                text = "文件"
-                                                                textColor = Color.BLACK
-                                                                textSize = 16.toFloat()
-                                                                typeface =
-                                                                    Typeface.defaultFromStyle(
-                                                                        Typeface.BOLD
-                                                                    )
-                                                            }
-
-                                                        }
-
-                                                    }
-
-
-                                                }
-
-                                                LinearLayout(
-                                                    lparams = LayoutParams(
-                                                    widthMatchParent = true
-
-                                                ) {}, init = {
-                                                    orientation = LinearLayout.HORIZONTAL
-                                                }) {
-
-                                                    CardView(lparams = LayoutParams {
-                                                        weight = 1f
-                                                    }, init = {
-                                                        setCardBackgroundColor(0xB4FFFFFF.toInt())
-                                                        radius = 20.toFloat()
-                                                        setMargins(8.dp)
-
-                                                        setOnClickListener {
-
-                                                        }
-                                                    }) {
-                                                        LinearLayout(
-                                                            lparams = LayoutParams(
-                                                                matchParent = true,
-                                                            ), init = {
-                                                                setPadding(
-                                                                    16.dp, 16.dp, 16.dp, 16.dp
-                                                                )
-                                                                gravity = Gravity.CENTER_VERTICAL
-                                                                orientation = LinearLayout.VERTICAL
-                                                            }) {
-
-                                                            ImageView {
-                                                                setImageResource(R.drawable.wallpaper_24)
-                                                            }
-                                                            TextView {
-                                                                text = "相册"
-                                                                textColor = Color.BLACK
-                                                                textSize = 16.toFloat()
-                                                                typeface =
-                                                                    Typeface.defaultFromStyle(
-                                                                        Typeface.BOLD
-                                                                    )
-                                                            }
-                                                        }
-                                                    }
-                                                    CardView(lparams = LayoutParams {
-                                                        weight = 1f
-                                                    }, init = {
-                                                        setCardBackgroundColor(0xB4FFFFFF.toInt())
-                                                        radius = 20.toFloat()
-                                                        setMargins(8.dp)
-
-                                                        setOnClickListener {
-
-                                                        }
-                                                    }) {
-                                                        LinearLayout(
-                                                            lparams = LayoutParams(
-                                                                matchParent = true,
-                                                            ), init = {
-                                                                setPadding(
-                                                                    16.dp, 16.dp, 16.dp, 16.dp
-                                                                )
-                                                                gravity = Gravity.CENTER_VERTICAL
-                                                                orientation = LinearLayout.VERTICAL
-                                                            }) {
-
-                                                            ImageView {
-                                                                setImageResource(R.drawable.apparel_24)
-                                                            }
-                                                            TextView {
-                                                                text = "装扮"
-                                                                textColor = Color.BLACK
-                                                                textSize = 16.toFloat()
-                                                                typeface =
-                                                                    Typeface.defaultFromStyle(
-                                                                        Typeface.BOLD
-                                                                    )
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                CardView(
-                                                    lparams = LayoutParams(widthMatchParent = true),
-                                                    init = {
-                                                        setCardBackgroundColor(0xB4FFFFFF.toInt())
-                                                        radius = 20.toFloat()
-                                                        setMargins(8.dp)
-                                                        setOnClickListener {
-
-                                                        }
-                                                    }) {
-                                                    LinearLayout(
-                                                        lparams = LayoutParams(
-                                                            matchParent = true,
-                                                        ), init = {
-                                                            setPadding(
-                                                                16.dp, 16.dp, 16.dp, 16.dp
-                                                            )
-                                                            gravity = Gravity.CENTER_VERTICAL
-                                                            orientation = LinearLayout.VERTICAL
-                                                        }) {
-
-                                                        ImageView {
-                                                            setImageResource(R.drawable.settings_24)
-                                                        }
-                                                        TextView {
-                                                            text = "模块设置"
-                                                            textColor = Color.BLACK
-                                                            textSize = 16.toFloat()
-                                                            typeface =
-                                                                Typeface.defaultFromStyle(Typeface.BOLD)
-                                                        }
-
-                                                    }
-
-                                                    setOnClickListener {
-
-                                                    }
-
-                                                }
-
-                                            }
-                                        }.create(fixContext)
-
-                                        group.addView(hikage.root())
-
-                                        Glide.with(fixContext)
-                                            .load("http://q.qlogo.cn/headimg_dl?dst_uin=${getCurrentAccountUin()}&spec=640&img_type=jpg")
-                                            .into(hikage.get<ImageView>("headImage"))
-                                    }
-                                })
-                            }
-                        }
-                    }
-
-
-                DexFinder.findMethod {
-                    declaredClass =
-                        "com.tencent.mobileqq.parts.QQSettingMeCoverPartV3".toClass(loader)
-                    parameters = arrayOf(Boolean::class.java)
-                    usingNumbers = longArrayOf(0, 8)
-                }.firstOrNull().hook().intercept()
-
-
-
-                "com.tencent.biz.qui.noticebar.view.VQUINoticeBarLayout".toClass(loader).resolve()
-                    .firstConstructor {}.hook {
-                        after {
-                            val view = instance<View>()
-                            view.post {
-                                view.background = Color.TRANSPARENT.toDrawable()
-                            }
-                        }
-                    }
-
-
-
-                "com.tencent.mobileqq.widget.search.QUISearchBar".toClass(loader).resolve()
-                    .firstConstructor {}.hook {
-                        after {
-                            val view = instance<View>()
-                            view.post {
-                                view.background = Color.TRANSPARENT.toDrawable()
-                            }
-                        }
-                    }
-
-
-
-                "com.tencent.qqnt.chats.view.ClipSkinnableRecycleView".toClass(loader).resolve()
-                    .firstConstructor {
-                        parameterCount = 2
-                    }.hook {
-                        after {
-                            val recyclerView = instance<View>()
-                            recyclerView.post {
-                                val context = recyclerView.context
-                                val layoutParams = recyclerView.layoutParams
-                                if (layoutParams is ViewGroup.MarginLayoutParams) {
-                                    val marginTopPx = context.dp2px(250)
-                                    layoutParams.topMargin = marginTopPx
-                                    layoutParams.bottomMargin = context.dp2px(100)
-                                    recyclerView.layoutParams = layoutParams
-                                }
-
-
-                                val paddingPx = context.dp2px(25)
-
-                                (recyclerView.parent as ViewGroup).setPadding(
-                                    paddingPx, paddingPx, paddingPx, paddingPx
-                                )
-
-
-                                val radius = context.dp2px(20)
-                                val gradientDrawable = GradientDrawable().apply {
-                                    shape = GradientDrawable.RECTANGLE
-                                    cornerRadius = radius.toFloat()
-                                    setColor(0xE6FFFFFF.toInt())
-                                }
-                                recyclerView.background = gradientDrawable
-
-                                (recyclerView.parent as ViewGroup).setBackgroundResource(R.drawable.bg)
-                                recyclerView.outlineProvider = object : ViewOutlineProvider() {
-                                    override fun getOutline(
-                                        view: View, outline: Outline
-                                    ) {
-                                        outline.setRoundRect(
-                                            0, 0, view.width, view.height, radius.toFloat()
-                                        )
-                                    }
-                                }
-                                recyclerView.clipToOutline = true
-
-                                (recyclerView.parent as ViewGroup).clipChildren = true
-
-                                recyclerView.postDelayed({
-                                    recyclerView.setPadding(
-                                        0, context.dp2px(1), 0, context.dp2px(100)
-                                    )
-                                }, 100)
-
-
-                            }
-                        }
-                    }
-
-
-
-                DexFinder.findMethod {
-                    declaredClass =
-                        "com.qqnt.widget.smartrefreshlayout.layout.SmartRefreshLayout".toClass(
-                            loader
-                        )
-                    parameters = arrayOf(
-                        Boolean::class.java
-                    )
-                    usedFields = arrayOf(
-                        DexFinder.findField {
-                            readMethods = arrayOf(DexFinder.findMethod {
-                                methodName = "computeScroll"
-                            }, DexFinder.findMethod {
-                                methodName = "dispatchTouchEvent"
-                            }, DexFinder.findMethod {
-                                methodName = "drawChild"
-                            }, DexFinder.findMethod {
-                                methodName = "isNestedScrollingEnabled"
-                            })
-                        })
-                }.find().forEach { method ->
-                    if (method.name.length < 5) {
-                        method.hook {
-                            before {
-                                if (args().first().cast<Boolean>() == true) {
-                                    args(index = 0).set(false)
-                                }
-                            }
-                        }
+        "com.tencent.biz.qui.noticebar.view.VQUINoticeBarLayout".toClass(loader).resolve()
+            .firstConstructor {}.hook {
+                after {
+                    val view = instance<View>()
+                    view.post {
+                        view.background = Color.TRANSPARENT.toDrawable()
                     }
                 }
-
-
-                "com.tencent.mobileqq.app.QQAppInterface".toClass(loader).resolve().firstMethod {
-                    name = "onCreateQQMessageFacade"
-                }.hook {
-                    after {
-                        sQQAppInterface = instance
-                        QQEnvApi.sQApi = instance as QQAppInterface
-                    }
-                }
-
-
-                @SuppressLint("InternalInsetResource")
-                fun getStatusBarHeight(context: Context): Int {
-                    var result = 0
-                    val resourceId = context.resources.getIdentifier(
-                        "status_bar_height", "dimen", "android"
-                    )
-                    if (resourceId > 0) {
-                        result = context.resources.getDimensionPixelSize(resourceId)
-                    }
-                    return result
-                }
-
-                "com.tencent.mobileqq.activity.home.Conversation".toClass(loader).resolve()
-                    .firstMethod {
-                        name = "initUI"
-                    }.hook {
-                        after {
-                            instance.asResolver().firstField {
-                                name = "mTitleArea"
-                            }.get<ViewGroup>()?.apply {
-                                removeAllViews()
-                                val statusBarHeight = getStatusBarHeight(context)
-
-                                val rootContainer = FrameLayout(context).apply {
-                                    layoutParams = ViewGroup.LayoutParams(
-                                        MATCH_PARENT, MATCH_PARENT
-                                    )
-                                    setBackgroundColor("#5A91FF".toColorInt())
-                                    setPadding(0, statusBarHeight, 0, 0)
-                                }
-
-                                val titleText = TextView(context).apply {
-                                    text = "消息"
-                                    gravity = Gravity.CENTER
-                                    textSize = 16f
-                                    setTextColor(Color.WHITE)
-                                }
-                                rootContainer.addView(
-                                    titleText, FrameLayout.LayoutParams(
-                                        WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER
-                                    )
-                                )
-
-                                val rightIconContainer = LinearLayout(context).apply {
-                                    orientation = LinearLayout.HORIZONTAL
-                                    layoutParams = FrameLayout.LayoutParams(
-                                        WRAP_CONTENT,
-                                        WRAP_CONTENT,
-                                        Gravity.END or Gravity.CENTER_VERTICAL
-                                    ).apply {
-                                        rightMargin = context.dp2px(16)
-                                    }
-                                }
-
-                                val settingsIcon = AppCompatImageView(context).apply {
-                                    layoutParams = LinearLayout.LayoutParams(
-                                        context.dp2px(24), context.dp2px(24)
-                                    ).apply {
-                                        leftMargin = context.dp2px(16)
-                                    }
-
-                                    setImageResource(R.drawable.baseline_settings_24)
-
-                                    scaleType = ImageView.ScaleType.CENTER_INSIDE
-
-                                    setOnClickListener {
-                                        val intent = Intent().apply {
-                                            component = ComponentName(
-                                                "com.tencent.mobileqq",
-                                                "com.tencent.mobileqq.activity.QPublicFragmentActivity"
-                                            )
-                                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                            putExtra("fling_action_key", 2)
-                                            putExtra("preAct", "SplashActivity")
-                                            putExtra("leftViewText", "返回")
-                                            putExtra("preAct_elapsedRealtime", SystemClock.elapsedRealtime())
-                                            putExtra("preAct_time", System.currentTimeMillis())
-                                            putExtra(
-                                                "public_fragment_class",
-                                                "com.tencent.mobileqq.setting.main.MainSettingFragment"
-                                            )
-                                        }
-                                        context.startActivity(intent)
-                                    }
-
-                                    setColorFilter(Color.WHITE)
-                                }
-
-                                val searchIcon = AppCompatImageView(context).apply {
-                                    layoutParams = LinearLayout.LayoutParams(
-                                        context.dp2px(24), context.dp2px(24)
-                                    )
-
-                                    setImageResource(R.drawable.baseline_search_24)
-
-                                    scaleType = ImageView.ScaleType.CENTER_INSIDE
-
-
-                                    setOnClickListener {
-                                        val intent = Intent().apply {
-                                            setClassName(
-                                                "com.tencent.mobileqq",
-                                                "com.tencent.mobileqq.search.activity.UniteSearchActivity"
-                                            )
-                                            putExtras(Bundle().apply {
-                                                putStringArrayList(
-                                                    "home_hint_words", ArrayList(emptyList())
-                                                )
-
-                                                putInt("fling_action_key", 2)
-                                                putInt("fromType", 1)
-                                                putInt("source", 1)
-                                                putString("preAct", "SplashActivity")
-                                                putString("leftViewText", "消息")
-
-                                                putLong(
-                                                    "preAct_elapsedRealtime",
-                                                    SystemClock.elapsedRealtime()
-                                                )
-                                                putLong(
-                                                    "preAct_time", System.currentTimeMillis()
-                                                )
-
-                                                // 其他参数
-                                                putInt("fling_code_key", 150083179)
-                                                putString("keyword", null)
-                                                putString("home_hot_word", null)
-                                                putString("home_gif_info", null)
-                                            })
-                                        }
-                                        context.startActivity(intent)
-                                    }
-
-                                    setColorFilter(Color.WHITE)
-                                }
-
-
-                                rightIconContainer.addView(searchIcon)
-                                rightIconContainer.addView(settingsIcon)
-
-
-                                rootContainer.addView(rightIconContainer)
-
-                                addView(
-                                    rootContainer,
-                                    ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                                )
-                            }
-                        }
-                    }
-
-
-
-
-                "com.tencent.mobileqq.activity.home.Conversation".toClass(loader).resolve()
-                    .firstMethod {
-                        name = "initUI"
-                    }.hook {
-                        after {
-                            instance.asResolver().firstField {
-                                name = "mRootView"
-                            }.get<ViewGroup>()?.apply {
-                                addButtonToScreen(this.context as Activity, this)
-                            }
-                        }
-                    }
-
-
-                "com.tencent.mobileqq.activity.home.Conversation".toClass(loader).resolve()
-                    .firstMethod {
-                        name = "initOnlineStatusContent"
-                    }.hook().intercept()
-
-
-                "com.tencent.qui.quiblurview.QQBlurViewWrapper".toClass(loader).resolve()
-                    .firstMethod {
-                        name = "onDestroy"
-                    }.hook {
-                        after {
-                            val view = instance<View>()
-                            val parent = view.parent as? ViewGroup
-                            parent?.removeView(view)
-                        }
-                    }
-
-
-                DexFinder.findMethod {
-                    searchPackages = arrayOf("com.tencent.mobileqq.activity.home.chats.biz")
-                    usedString = arrayOf(
-                        "headerRoot",
-                        "mQQTabWidget",
-                        "mQQBlurView",
-                    )
-                    parameters = arrayOf(Float::class.java)
-                    usingNumbers = longArrayOf(12)
-                }.firstOrNull().hook().intercept()
-
-
-
-                "com.tencent.mobileqq.widget.QQTabLayout".toClass(loader).resolve()
-                    .firstConstructor {
-                        parameterCount = 2
-                    }.hook {
-                        after {
-                            val tabLayout = instance<ViewGroup>()
-                            tabLayout.removeAllViews()
-                            tabLayout.setBackgroundColor(Color.TRANSPARENT)
-                            val parent =
-                                LayoutInflater.from(tabLayout.context.applyModuleTheme(R.style.Theme_AppDefault))
-                                    .inflate(R.layout.material_tab, null)
-
-                            tabLayout.post {
-                                val rootView = (tabLayout.parent as ViewGroup)
-                                val homeTabViewTag = "home_tab_view"
-                                if (rootView.findViewWithTag<View>(homeTabViewTag) != null) {
-                                    return@post
-                                }
-                                rootView.addView(parent)
-                                val roundLayout =
-                                    parent.findViewById<LinearLayout>(R.id.roundlayout)
-                                roundLayout.setTag(homeTabViewTag)
-                                val tab1 = parent.findViewById<LinearLayout>(R.id.tab1)
-                                val tab2 = parent.findViewById<LinearLayout>(R.id.tab2)
-                                val tab3 = parent.findViewById<LinearLayout>(R.id.tab3)
-                                val tab4 = parent.findViewById<LinearLayout>(R.id.tab4)
-                                // 若未启用频道选项 则不显示此Tab
-                                if (!GuildApi.isShowGuildTab()) tab3.visibility = View.GONE
-
-                                val tabs = listOf(tab1, tab2, tab3, tab4)
-                                val text1 = tab1.findViewById<TextView>(R.id.tab1_text)
-                                val text2 = tab2.findViewById<TextView>(R.id.tab2_text)
-                                val text3 = tab3.findViewById<TextView>(R.id.tab3_text)
-                                val text4 = tab4.findViewById<TextView>(R.id.tab4_text)
-                                val customTransition: Transition = TransitionSet().apply {
-                                    ordering = TransitionSet.ORDERING_TOGETHER
-                                    addTransition(ChangeBounds().apply {
-                                        interpolator = FastOutSlowInInterpolator()
-                                        duration = 300
-                                    })
-                                    addTransition(Fade().apply {
-                                        duration = 200
-                                    })
-                                }.addListener(object : Transition.TransitionListener {
-                                    override fun onTransitionStart(transition: Transition) {
-                                        tabs.forEach { it.isClickable = false }
-                                    }
-
-                                    override fun onTransitionEnd(transition: Transition) {
-                                        tabs.forEach { it.isClickable = true }
-                                    }
-
-                                    override fun onTransitionCancel(transition: Transition) {
-                                        tabs.forEach { it.isClickable = true }
-                                    }
-
-                                    override fun onTransitionPause(transition: Transition) {}
-                                    override fun onTransitionResume(transition: Transition) {}
-                                })
-
-                                var isInitialSetupComplete = false
-
-                                tab1.isSelected = true
-                                text1.visibility = View.VISIBLE
-
-                                tab1.setOnClickListener {
-                                    if (isInitialSetupComplete && !tab1.isSelected) {
-                                        TransitionManager.beginDelayedTransition(
-                                            roundLayout, customTransition
-                                        )
-                                    }
-
-                                    tab1.isSelected = true
-                                    tab2.isSelected = false
-                                    tab3.isSelected = false
-                                    tab4.isSelected = false
-                                    text1.visibility = View.VISIBLE
-                                    text2.visibility = View.GONE
-                                    text3.visibility = View.GONE
-                                    text4.visibility = View.GONE
-                                    tabLayout.asResolver().firstMethod {
-                                        name = "setCurrentTab"
-                                    }.invoke(
-                                        0
-                                    )
-
-                                }
-                                tab2.setOnClickListener {
-                                    if (isInitialSetupComplete && !tab2.isSelected) {
-                                        TransitionManager.beginDelayedTransition(
-                                            roundLayout, customTransition
-                                        )
-                                    }
-
-                                    tab1.isSelected = false
-                                    tab2.isSelected = true
-                                    tab3.isSelected = false
-                                    tab4.isSelected = false
-                                    text1.visibility = View.GONE
-                                    text2.visibility = View.VISIBLE
-                                    text3.visibility = View.GONE
-                                    text4.visibility = View.GONE
-
-                                    tabLayout.asResolver().firstMethod {
-                                        name = "setCurrentTab"
-                                    }.invoke(
-                                        if (GuildApi.isShowGuildTab()) 2 else 1
-                                    )
-
-                                }
-                                tab3.setOnClickListener {
-                                    if (isInitialSetupComplete && !tab3.isSelected) {
-                                        TransitionManager.beginDelayedTransition(
-                                            roundLayout, customTransition
-                                        )
-                                    }
-
-                                    tab1.isSelected = false
-                                    tab2.isSelected = false
-                                    tab3.isSelected = true
-                                    tab4.isSelected = false
-                                    text1.visibility = View.GONE
-                                    text2.visibility = View.GONE
-                                    text3.visibility = View.VISIBLE
-                                    text4.visibility = View.GONE
-
-                                    tabLayout.asResolver().firstMethod {
-                                        name = "setCurrentTab"
-                                    }.invoke(
-                                        1
-                                    )
-
-                                }
-                                tab4.setOnClickListener {
-                                    if (isInitialSetupComplete && !tab4.isSelected) {
-                                        TransitionManager.beginDelayedTransition(
-                                            roundLayout, customTransition
-                                        )
-                                    }
-                                    tab1.isSelected = false
-                                    tab2.isSelected = false
-                                    tab3.isSelected = false
-                                    tab4.isSelected = true
-                                    text1.visibility = View.GONE
-                                    text2.visibility = View.GONE
-                                    text3.visibility = View.GONE
-                                    text4.visibility = View.VISIBLE
-
-                                    tabLayout.asResolver().firstMethod {
-                                        name = "setCurrentTab"
-                                    }.invoke(
-                                        if (GuildApi.isShowGuildTab()) 3 else 2
-                                    )
-                                }
-
-                                tabLayout.post { isInitialSetupComplete = true }
-                            }
-                        }
-                    }
-
-
             }
-        }
-    }
 
-    fun getCurrentAccountUin(): String {
-        sQQAppInterface?.asResolver()?.firstMethod {
-            name = "getCurrentAccountUin"
-        }?.invoke<String>()?.let {
-            return it
-        }
-        return ""
-    }
 
-    fun getCurrentNickname(): String {
-        sQQAppInterface?.asResolver()?.firstMethod {
-            name = "getCurrentNickname"
-        }?.invoke<String>()?.let {
-            return it
+
+        "com.tencent.mobileqq.widget.search.QUISearchBar".toClass(loader).resolve()
+            .firstConstructor {}.hook {
+                after {
+                    val view = instance<View>()
+                    view.post {
+                        view.background = Color.TRANSPARENT.toDrawable()
+                    }
+                }
+            }
+
+
+
+        "com.tencent.qqnt.chats.view.ClipSkinnableRecycleView".toClass(loader).resolve()
+            .firstConstructor {
+                parameterCount = 2
+            }.hook {
+                after {
+                    val recyclerView = instance<View>()
+                    recyclerView.post {
+                        val context = recyclerView.context
+                        val layoutParams = recyclerView.layoutParams
+                        if (layoutParams is ViewGroup.MarginLayoutParams) {
+                            val marginTopPx = context.dp2px(250)
+                            layoutParams.topMargin = marginTopPx
+                            layoutParams.bottomMargin = context.dp2px(100)
+                            recyclerView.layoutParams = layoutParams
+                        }
+
+
+                        val paddingPx = context.dp2px(25)
+
+                        (recyclerView.parent as ViewGroup).setPadding(
+                            paddingPx, paddingPx, paddingPx, paddingPx
+                        )
+
+
+                        val radius = context.dp2px(20)
+                        val gradientDrawable = GradientDrawable().apply {
+                            shape = GradientDrawable.RECTANGLE
+                            cornerRadius = radius.toFloat()
+                            setColor(0xE6FFFFFF.toInt())
+                        }
+                        recyclerView.background = gradientDrawable
+
+                        (recyclerView.parent as ViewGroup).setBackgroundResource(R.drawable.bg)
+                        recyclerView.outlineProvider = object : ViewOutlineProvider() {
+                            override fun getOutline(
+                                view: View, outline: Outline
+                            ) {
+                                outline.setRoundRect(
+                                    0, 0, view.width, view.height, radius.toFloat()
+                                )
+                            }
+                        }
+                        recyclerView.clipToOutline = true
+
+                        (recyclerView.parent as ViewGroup).clipChildren = true
+
+                        recyclerView.postDelayed({
+                            recyclerView.setPadding(
+                                0, context.dp2px(1), 0, context.dp2px(100)
+                            )
+                        }, 100)
+
+
+                    }
+                }
+            }
+
+
+
+
+        @SuppressLint("InternalInsetResource")
+        fun getStatusBarHeight(context: Context): Int {
+            var result = 0
+            val resourceId = context.resources.getIdentifier(
+                "status_bar_height", "dimen", "android"
+            )
+            if (resourceId > 0) {
+                result = context.resources.getDimensionPixelSize(resourceId)
+            }
+            return result
         }
-        return ""
+
+        "com.tencent.mobileqq.activity.home.Conversation".toClass(loader).resolve()
+            .firstMethod {
+                name = "initUI"
+            }.hook {
+                after {
+                    instance.asResolver().firstField {
+                        name = "mTitleArea"
+                    }.get<ViewGroup>()?.apply {
+                        removeAllViews()
+                        val statusBarHeight = getStatusBarHeight(context)
+
+                        val rootContainer = FrameLayout(context).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                MATCH_PARENT, MATCH_PARENT
+                            )
+                            setBackgroundColor("#5A91FF".toColorInt())
+                            setPadding(0, statusBarHeight, 0, 0)
+                        }
+
+                        val titleText = TextView(context).apply {
+                            text = "消息"
+                            gravity = Gravity.CENTER
+                            textSize = 16f
+                            setTextColor(Color.WHITE)
+                        }
+                        rootContainer.addView(
+                            titleText, FrameLayout.LayoutParams(
+                                WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER
+                            )
+                        )
+
+                        val rightIconContainer = LinearLayout(context).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            layoutParams = FrameLayout.LayoutParams(
+                                WRAP_CONTENT,
+                                WRAP_CONTENT,
+                                Gravity.END or Gravity.CENTER_VERTICAL
+                            ).apply {
+                                rightMargin = context.dp2px(16)
+                            }
+                        }
+
+                        val settingsIcon = AppCompatImageView(context).apply {
+                            layoutParams = LinearLayout.LayoutParams(
+                                context.dp2px(24), context.dp2px(24)
+                            ).apply {
+                                leftMargin = context.dp2px(16)
+                            }
+
+                            setImageResource(R.drawable.baseline_settings_24)
+
+                            scaleType = ImageView.ScaleType.CENTER_INSIDE
+
+                            setOnClickListener {
+                                val intent = Intent().apply {
+                                    component = ComponentName(
+                                        "com.tencent.mobileqq",
+                                        "com.tencent.mobileqq.activity.QPublicFragmentActivity"
+                                    )
+                                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                    putExtra("fling_action_key", 2)
+                                    putExtra("preAct", "SplashActivity")
+                                    putExtra("leftViewText", "返回")
+                                    putExtra("preAct_elapsedRealtime", SystemClock.elapsedRealtime())
+                                    putExtra("preAct_time", System.currentTimeMillis())
+                                    putExtra(
+                                        "public_fragment_class",
+                                        "com.tencent.mobileqq.setting.main.MainSettingFragment"
+                                    )
+                                }
+                                context.startActivity(intent)
+                            }
+
+                            setColorFilter(Color.WHITE)
+                        }
+
+                        val searchIcon = AppCompatImageView(context).apply {
+                            layoutParams = LinearLayout.LayoutParams(
+                                context.dp2px(24), context.dp2px(24)
+                            )
+
+                            setImageResource(R.drawable.baseline_search_24)
+
+                            scaleType = ImageView.ScaleType.CENTER_INSIDE
+
+
+                            setOnClickListener {
+                                val intent = Intent().apply {
+                                    setClassName(
+                                        "com.tencent.mobileqq",
+                                        "com.tencent.mobileqq.search.activity.UniteSearchActivity"
+                                    )
+                                    putExtras(Bundle().apply {
+                                        putStringArrayList(
+                                            "home_hint_words", ArrayList(emptyList())
+                                        )
+
+                                        putInt("fling_action_key", 2)
+                                        putInt("fromType", 1)
+                                        putInt("source", 1)
+                                        putString("preAct", "SplashActivity")
+                                        putString("leftViewText", "消息")
+
+                                        putLong(
+                                            "preAct_elapsedRealtime",
+                                            SystemClock.elapsedRealtime()
+                                        )
+                                        putLong(
+                                            "preAct_time", System.currentTimeMillis()
+                                        )
+
+                                        // 其他参数
+                                        putInt("fling_code_key", 150083179)
+                                        putString("keyword", null)
+                                        putString("home_hot_word", null)
+                                        putString("home_gif_info", null)
+                                    })
+                                }
+                                context.startActivity(intent)
+                            }
+
+                            setColorFilter(Color.WHITE)
+                        }
+
+
+                        rightIconContainer.addView(searchIcon)
+                        rightIconContainer.addView(settingsIcon)
+
+
+                        rootContainer.addView(rightIconContainer)
+
+                        addView(
+                            rootContainer,
+                            ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                        )
+                    }
+                }
+            }
+
+
+
+
+        "com.tencent.mobileqq.activity.home.Conversation".toClass(loader).resolve()
+            .firstMethod {
+                name = "initUI"
+            }.hook {
+                after {
+                    instance.asResolver().firstField {
+                        name = "mRootView"
+                    }.get<ViewGroup>()?.apply {
+                        addButtonToScreen(this.context as Activity, this)
+                    }
+                }
+            }
+
+
+        "com.tencent.mobileqq.activity.home.Conversation".toClass(loader).resolve()
+            .firstMethod {
+                name = "initOnlineStatusContent"
+            }.hook().intercept()
+
+
+        "com.tencent.qui.quiblurview.QQBlurViewWrapper".toClass(loader).resolve()
+            .firstMethod {
+                name = "onDestroy"
+            }.hook {
+                after {
+                    val view = instance<View>()
+                    val parent = view.parent as? ViewGroup
+                    parent?.removeView(view)
+                }
+            }
+
+
+        DexFinder.findMethod {
+            searchPackages = arrayOf("com.tencent.mobileqq.activity.home.chats.biz")
+            usedString = arrayOf(
+                "headerRoot",
+                "mQQTabWidget",
+                "mQQBlurView",
+            )
+            parameters = arrayOf(Float::class.java)
+            usingNumbers = longArrayOf(12)
+        }.firstOrNull().hook().intercept()
+
+
     }
 
     fun Context.getResourceId(resourceName: String, resourceType: String): Int {
@@ -1087,21 +485,7 @@ object MainHook : YukiBaseHooker() {
         rootView.addView(button)
     }
 
-    @SuppressLint("DiscouragedPrivateApi")
-    @Throws(Exception::class)
-    private fun injectClassLoader() {
-        val fParent: Field = ClassLoader::class.java.getDeclaredField("parent")
-        fParent.isAccessible = true
-        val mine = MainHook::class.java.classLoader
-        var curr: ClassLoader? = fParent.get(mine) as ClassLoader
-        if (curr == null) {
-            curr = XposedBridge::class.java.classLoader
-        }
-        if (curr!!.javaClass.name != HybridClassLoader::class.java.getName()) {
-            HybridClassLoader.setLoaderParentClassLoader(curr)
-            fParent.set(mine, HybridClassLoader.INSTANCE)
-        }
-    }
+
 }
 
 fun Context.startUri(uri: String) {
@@ -1116,7 +500,7 @@ data class FabMenu(
 
 
 fun Context.dp2px(dp: Int): Int {
-    val scale = this.getResources().getDisplayMetrics().density
+    val scale = this.resources.displayMetrics.density
     return (dp * scale).roundToInt()
 }
 

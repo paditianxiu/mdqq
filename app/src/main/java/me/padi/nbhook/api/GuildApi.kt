@@ -10,6 +10,7 @@ object GuildApi {
 
     /**
      * 导航栏是否正在展示频道Tab
+     * @return Boolean
      */
     fun isShowGuildTab(): Boolean = QRoute.api(guildRouterApi).asResolver().firstMethod {
         name = "isShowGuildTab"
