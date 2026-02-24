@@ -1,5 +1,6 @@
 package me.padi.nbhook.library.FloatingActionButton;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -38,7 +39,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import me.padi.nbhook.R;
-
+@SuppressLint({"AppCompatCustomView"})
 public class FloatingActionButton extends ImageButton {
 
     public static final int SIZE_NORMAL = 0;

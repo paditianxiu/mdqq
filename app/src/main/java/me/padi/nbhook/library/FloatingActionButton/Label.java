@@ -1,16 +1,10 @@
 package me.padi.nbhook.library.FloatingActionButton;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.graphics.Canvas;
-import android.graphics.ColorFilter;
-import android.graphics.Outline;
-import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
-import android.graphics.RectF;
-import android.graphics.Xfermode;
+import android.graphics.*;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
@@ -25,8 +19,9 @@ import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.view.animation.Animation;
 import android.widget.TextView;
+import kotlin.Suppress;
 
-
+@SuppressLint({"AppCompatCustomView"})
 public class Label extends TextView {
 
     private static final Xfermode PORTER_DUFF_CLEAR = new PorterDuffXfermode(PorterDuff.Mode.CLEAR);
@@ -372,7 +367,7 @@ public class Label extends TextView {
 
         @Override
         public int getOpacity() {
-            return 0;
+            return PixelFormat.OPAQUE;
         }
     }
 }
