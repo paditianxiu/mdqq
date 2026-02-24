@@ -34,8 +34,12 @@ import me.padi.nbhook.R
 import me.padi.nbhook.hook.base.Plugin
 import me.padi.nbhook.library.FloatingActionButton.FloatingActionButton
 import me.padi.nbhook.library.FloatingActionButton.FloatingActionMenu
+import me.padi.nbhook.util.dp2px
+import me.padi.nbhook.util.startUri
 import top.sacz.xphelper.dexkit.DexFinder
 import kotlin.math.roundToInt
+
+
 @Deprecated(message = "弃用，暂时仍然生效，后续将剩下的Hook细分开")
 object MainHook : Plugin(isEnabledDefault = true) {
 
@@ -335,17 +339,6 @@ object MainHook : Plugin(isEnabledDefault = true) {
 
     }
 
-    fun Context.getResourceId(resourceName: String, resourceType: String): Int {
-        return try {
-            resources.getIdentifier(resourceName, resourceType, packageName).takeIf { it != 0 }
-                ?: throw Resources.NotFoundException("Resource $resourceType/$resourceName not found")
-        } catch (e: Exception) {
-
-            resources.getIdentifier(resourceName, resourceType, "android")
-        }
-    }
-
-
     private fun findActivity(context: Context?): Activity? {
         if (context == null) return null
 
@@ -488,19 +481,10 @@ object MainHook : Plugin(isEnabledDefault = true) {
 
 }
 
-fun Context.startUri(uri: String) {
-    val intent = Intent(Intent.ACTION_VIEW, uri.toUri())
-    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    this.startActivity(intent)
-}
 
 data class FabMenu(
     val title: String, val icon: Int, val onClick: () -> Unit
 )
 
 
-fun Context.dp2px(dp: Int): Int {
-    val scale = this.resources.displayMetrics.density
-    return (dp * scale).roundToInt()
-}
 
