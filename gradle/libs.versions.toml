@@ -26,7 +26,7 @@ junit = "4.13.2"
 androidx-test-junit = "1.3.0"
 androidx-test-espresso-core = "3.7.0"
 xphelper = "3.0"
-ui = "1.10.3"
+ui = "1.10.4"
 media3-exoplayer = "1.9.2"
 
 [plugins]
